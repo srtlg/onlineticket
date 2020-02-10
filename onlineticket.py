@@ -85,7 +85,12 @@ class DataBlock(object):
             l   = val[1]
             if type(l) != int:
                 l = l(self, res)
-            dat = self.read(l)
+                if key in ('list_raw', 'data'):
+                    dat = self.read(l)
+                else:
+                    dat = self.read(l).decode('utf-8')
+            else:
+                dat = self.read(l)
             if len(val) > 2 and val[2] is not None:
                 if type(val[2]) == dict:
                   dat = val[2][dat.decode('ascii')]
