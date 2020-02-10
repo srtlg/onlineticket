@@ -35,9 +35,9 @@ def debug(tag, arg, *extra):
     if DEBUG: print(tag, arg, *extra, "\n")
     return arg
 
-date_parser = lambda x: datetime.datetime.strptime(debug('date', x).decode('utf-8'), "%d%m%Y")
-german_date_parser = lambda x: datetime.datetime.strptime(x.decode('utf-8'), "%d.%m.%Y")
-datetime_parser = lambda x: datetime.datetime.strptime(x.decode('utf-8'), "%d%m%Y%H%M")
+date_parser = lambda x: datetime.datetime.strptime(debug('date', x), "%d%m%Y")
+german_date_parser = lambda x: datetime.datetime.strptime(x, "%d.%m.%Y")
+datetime_parser = lambda x: datetime.datetime.strptime(x, "%d%m%Y%H%M")
 
 def DateTimeCompact(data):
   """Based on http://www.kcefm.de/imperia/md/content/kcefm/kcefmvrr/2010_02_12_kompendiumvrrfa2dvdv_1_4.pdf"""
@@ -88,10 +88,13 @@ class DataBlock(object):
             dat = self.read(l)
             if len(val) > 2 and val[2] is not None:
                 if type(val[2]) == dict:
-                  dat = val[2].get(dat, dat)
+                  dat = val[2][dat.decode('ascii')]
                 else:
                   try:
-                    dat = val[2](dat)
+                      if val[2] in (uint8, uint16, uint24, uint32, DateTimeCompact):
+                          dat = val[2](dat)
+                      else:
+                          dat = val[2](dat.decode('utf-8'))
                   except Exception as e:
                     print('Couldn\'t decode', val, repr(dat), self.__class__)
                     print(dict_str(res))
@@ -240,9 +243,9 @@ class OT_0080BL(DataBlock):
 
         for i in range(res['data_count']):
             assert self.read(1) == b"S"
-            typ = self.read(3)
+            typ = self.read(3).decode('ascii')
             l   = int(self.read(4))
-            dat = self.read(l)
+            dat = self.read(l).decode('utf-8')
 
             typ, mod = typen.get(typ, (typ,ident))
             dat = mod.get(dat, dat) if type(mod) == dict else mod(dat)
@@ -256,13 +259,13 @@ class OT_0080BL(DataBlock):
                     ('padding', 11),
                     ('valid_from', 8, date_parser),
                     ('valid_to', 8, date_parser),
-                    ('serial', 8, lambda x: int(x.split(b'\x00')[0]))
+                    ('serial', 8, lambda x: int(x.split('\x00')[0]))
                  ]
         # V3: 10102017 10102017 265377293\x00 12102017 12102017 265377294\x00
         version_3_fields = [
                     ('valid_from', 8, date_parser),
                     ('valid_to', 8, date_parser),
-                    ('serial', 10, lambda x: int(x.split(b'\x00')[0]))
+                    ('serial', 10, lambda x: int(x.split('\x00')[0]))
                  ]
         fields = version_2_fields if self.header['version'] < 3 else version_3_fields
         return [self.dict_read(fields) for i in range(res['auftrag_count'])]
@@ -408,11 +411,13 @@ class OT(DataBlock):
         #     lambda self, res: decoder.decode(self.read(50))),
         #('padding', 0, None, lambda self, res: self.read(4 - self.offset%4)) #dword paddng
               ]
+    def decompress(self, res):
+        ticket_data = zlib.decompress(self.read(res['data_length']))
+        return read_blocks(ticket_data, read_block)
+
     fields = [
         ('data_length', 4, int),
-        ('ticket', 0, None,
-            lambda self, res: read_blocks(
-              zlib.decompress(self.read(res['data_length'])), read_block))
+        ('ticket', 0, None, decompress)
         ]
 
 def read_block(data, offset):
