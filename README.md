@@ -23,7 +23,35 @@ erhalten haben, die man nun an das Skript füttern kann:
 
     python onlineticket.py *.txt
 
+
+## Arten von online Fahrkarten
+
+### Fahrkarten, beginnend mit `#UT01` oder `OTI01`
+
+- dekodierbar mit der Version von [rumpeltux/onlineticket](https://github.com/rumpeltux/onlineticket)
+- mit `OTI01` beginnen einige Fahrkarten, die zwischen 2015-12 und 2017-08 erstellt wurden
+- dekodierbar, aber Exception wird geworfen: Quer-durchs-Land-Tickets, Schönes-Wochenende-Ticket, ein Ticket nach RCT2
+  - schlägt in `print(dict_str(...))` fehl
+  - alle enthalten `U_TLAY` Block
+
+
+### Fahrkarten, nicht beginnend mit `#UT01`
+
+- Schöne-Reise-Ticket (NRW)
+- Schöner-Tag-Ticket (NRW)
+- VGWS-Tickets (NRW)
+
+
 ## Bugs
 
 Sollte das Skript mit einem Ticket nicht klarkommen, bitte einen Bug öffnen
 und mir die Barcode-Daten (`.txt` Datei) zukommen lassen.
+
+
+## Literatur
+
+R. Waitz, "Additive Datenübertragung in Barcodes von internationalen Bahntickets", Wien 2014
+
+Deutsche Bahn, ["Interoperabilität von UIC-Barcode VDV-Barcode"](https://www.bahn.de/p/view/angebot/regio/barcode.shtml)
+
+[justusjonas74/uic-918-3](https://github.com/justusjonas74/uic-918-3)
